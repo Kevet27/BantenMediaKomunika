@@ -4,8 +4,10 @@ import streamlit as st
 # CONFIG
 # =========================================
 
+app_name = "EduTech Media"
+
 st.set_page_config(
-    page_title="Website Media Komunikasi",
+    page_title=app_name,
     layout="wide"
 )
 
@@ -25,7 +27,7 @@ menus = [
 # SIDEBAR MENU
 # =========================================
 
-st.sidebar.title("MENU")
+st.sidebar.title(f"📌 {app_name}")
 
 menu = st.sidebar.radio(
     "Pilih Menu",
@@ -79,9 +81,9 @@ st.markdown("""
 
 if menu == "Home":
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="title">
-        Selamat Datang
+        {app_name}
     </div>
     """, unsafe_allow_html=True)
 
@@ -150,10 +152,6 @@ elif menu == "Portfolio":
 
     st.title("💼 Portfolio")
 
-    # =====================================
-    # DATA PORTFOLIO
-    # =====================================
-
     portfolios = [
 
         {
@@ -175,10 +173,6 @@ elif menu == "Portfolio":
         }
 
     ]
-
-    # =====================================
-    # TAMPILKAN PORTFOLIO
-    # =====================================
 
     cols = st.columns(3)
 
@@ -215,8 +209,8 @@ elif menu == "Tentang Kami":
 
     st.title("ℹ️ Tentang Kami")
 
-    st.write("""
-    Website ini dibuat sebagai media komunikasi digital
+    st.write(f"""
+    {app_name} dibuat sebagai media komunikasi digital
     modern yang responsif dan mudah dikembangkan.
     """)
 
@@ -276,4 +270,4 @@ elif menu == "Kontak":
 
 st.write("")
 st.write("---")
-st.caption("© 2026 Website Media Komunikasi - Streamlit Version")
+st.caption(f"© 2026 {app_name} - Streamlit Version")
