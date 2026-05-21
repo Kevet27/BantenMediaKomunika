@@ -4,7 +4,7 @@ import streamlit as st
 # CONFIG
 # =========================================
 
-app_name = "BANTEN MEDIA KOMUNIKA"
+app_name = "EduTech Media"
 
 st.set_page_config(
     page_title=app_name,
@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # =========================================
-# DATA MENU DINAMIS
+# DATA MENU
 # =========================================
 
 menus = [
@@ -22,17 +22,6 @@ menus = [
     "Tentang Kami",
     "Kontak"
 ]
-
-# =========================================
-# SIDEBAR MENU
-# =========================================
-
-st.sidebar.title(f"📌 {app_name}")
-
-menu = st.sidebar.radio(
-    "Pilih Menu",
-    menus
-)
 
 # =========================================
 # CUSTOM CSS
@@ -45,6 +34,23 @@ st.markdown("""
     background-color: #f5f5f5;
 }
 
+/* NAVBAR */
+.navbar {
+    background-color: #1e293b;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.nav-title {
+    color: white;
+    font-size: 30px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* TITLE */
 .title {
     text-align: center;
     color: #1e293b;
@@ -58,6 +64,7 @@ st.markdown("""
     font-size: 20px;
 }
 
+/* CARD */
 .card {
     background-color: white;
     padding: 20px;
@@ -72,8 +79,35 @@ st.markdown("""
     font-weight: bold;
 }
 
+/* KONTAK */
+.contact-box {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
+}
+
 </style>
 """, unsafe_allow_html=True)
+
+# =========================================
+# NAVBAR ATAS
+# =========================================
+
+st.markdown(f"""
+<div class="navbar">
+    <div class="nav-title">{app_name}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# MENU BERBARIS KE SAMPING
+menu = st.radio(
+    "Navigasi Menu",
+    menus,
+    horizontal=True
+)
+
+st.write("")
 
 # =========================================
 # HOME
@@ -234,25 +268,33 @@ elif menu == "Kontak":
 
     st.title("📞 Kontak")
 
-    with st.form("contact_form"):
+    with st.container():
 
-        nama = st.text_input("Nama Lengkap")
+        st.markdown("""
+        <div class="contact-box">
+        """, unsafe_allow_html=True)
 
-        email = st.text_input("Email")
+        with st.form("contact_form"):
 
-        pesan = st.text_area("Pesan")
+            nama = st.text_input("Nama Lengkap")
 
-        submit = st.form_submit_button("Kirim Pesan")
+            email = st.text_input("Email")
 
-        if submit:
+            pesan = st.text_area("Pesan")
 
-            st.success("Pesan berhasil dikirim!")
+            submit = st.form_submit_button("Kirim Pesan")
 
-            st.write("### Data Pesan")
+            if submit:
 
-            st.write(f"**Nama:** {nama}")
-            st.write(f"**Email:** {email}")
-            st.write(f"**Pesan:** {pesan}")
+                st.success("Pesan berhasil dikirim!")
+
+                st.write("### Data Pesan")
+
+                st.write(f"**Nama:** {nama}")
+                st.write(f"**Email:** {email}")
+                st.write(f"**Pesan:** {pesan}")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.write("")
 
