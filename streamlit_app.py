@@ -1,5 +1,7 @@
 import streamlit as st
 from PIL import Image
+import sqlite3
+import os
 
 app_name = "BANTEN MEDIA KOMUNIKA"
 
@@ -7,7 +9,36 @@ st.set_page_config(
     page_title=app_name,
     layout="wide"
 )
+# =========================================
+# FOLDER UPLOAD
+# =========================================
 
+UPLOAD_FOLDER = "uploads"
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# =========================================
+# DATABASE SQLITE
+# =========================================
+
+conn = sqlite3.connect(
+    "portfolio.db",
+    check_same_thread=False
+)
+
+c = conn.cursor()
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS portfolio (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    judul TEXT,
+    deskripsi TEXT,
+    file_path TEXT
+)
+""")
+
+conn.commit()
 # =========================================
 # DATA MENU
 # =========================================
@@ -184,55 +215,65 @@ elif menu == "Portfolio":
 
     st.title("💼 Portfolio")
 
-    portfolios = [
+    st.write("Berikut karya yang telah diupload:")
 
-        {
-            "title": "Website Company Profile",
-            "desc": "Membuat website modern dan responsive.",
-            "image": "https://picsum.photos/400/200?1"
-        },
+    # AMBIL DATA DATABASE
+    c.execute(
+        "SELECT * FROM portfolio ORDER BY id DESC"
+    )
 
-        {
-            "title": "Media Pembelajaran",
-            "desc": "Media pembelajaran interaktif berbasis digital.",
-            "image": "https://picsum.photos/400/200?2"
-        },
+    data_portfolio = c.fetchall()
 
-        {
-            "title": "Sistem Informasi Sekolah",
-            "desc": "Aplikasi pengolahan data sekolah berbasis web.",
-            "image": "https://picsum.photos/400/200?3"
-        }
+    if len(data_portfolio) == 0:
 
-    ]
+        st.info("Belum ada karya yang diupload.")
 
-    cols = st.columns(3)
+    else:
 
-    for index, item in enumerate(portfolios):
+        cols = st.columns(3)
 
-        with cols[index % 3]:
+        for index, item in enumerate(data_portfolio):
 
-            st.image(
-                item["image"],
-                use_container_width=True
-            )
+            with cols[index % 3]:
 
-            st.markdown(f"""
-            <div class="card">
+                id_portfolio = item[0]
+                judul = item[1]
+                deskripsi = item[2]
+                file_path = item[3]
 
-            <div class="portfolio-title">
-                {item["title"]}
-            </div>
+                # TAMPILKAN GAMBAR
+                if file_path.endswith(
+                    ("png", "jpg", "jpeg")
+                ):
 
-            <br>
+                    st.image(
+                        file_path,
+                        use_container_width=True
+                    )
 
-            <p>
-                {item["desc"]}
-            </p>
+                st.markdown(f"""
+                <div class="card">
 
-            </div>
-            """, unsafe_allow_html=True)
+                <div class="portfolio-title">
+                    {judul}
+                </div>
 
+                <br>
+
+                <p>{deskripsi}</p>
+
+                </div>
+                """, unsafe_allow_html=True)
+
+                # DOWNLOAD FILE
+                with open(file_path, "rb") as file:
+
+                    st.download_button(
+                        label="⬇ Download File",
+                        data=file,
+                        file_name=os.path.basename(file_path),
+                        key=id_portfolio
+                    )
 
 elif menu == "Upload Karya":
 
@@ -242,33 +283,55 @@ elif menu == "Upload Karya":
     Silakan upload karya atau project Anda.
     """)
 
-    # INPUT JUDUL
     judul = st.text_input("Judul Karya")
 
-    # INPUT DESKRIPSI
     deskripsi = st.text_area("Deskripsi Karya")
 
-    # UPLOAD FILE
     uploaded_file = st.file_uploader(
         "Upload File Karya",
         type=["png", "jpg", "jpeg", "pdf", "docx", "pptx"]
     )
 
-    # TOMBOL SIMPAN
     if st.button("Simpan Karya"):
 
         if judul and deskripsi and uploaded_file:
 
-            st.success("Karya berhasil diupload!")
+            # SIMPAN FILE
+            file_path = os.path.join(
+                UPLOAD_FOLDER,
+                uploaded_file.name
+            )
 
-            st.write("## Detail Karya")
+            with open(file_path, "wb") as f:
+                f.write(
+                    uploaded_file.getbuffer()
+                )
 
-            st.write(f"**Judul:** {judul}")
-            st.write(f"**Deskripsi:** {deskripsi}")
-            st.write(f"**Nama File:** {uploaded_file.name}")
+            # SIMPAN DATABASE
+            c.execute(
+                """
+                INSERT INTO portfolio
+                (judul, deskripsi, file_path)
 
-            # PREVIEW FILE GAMBAR
-            if uploaded_file.type.startswith("image"):
+                VALUES (?, ?, ?)
+                """,
+                (
+                    judul,
+                    deskripsi,
+                    file_path
+                )
+            )
+
+            conn.commit()
+
+            st.success(
+                "Karya berhasil diupload dan masuk ke portfolio!"
+            )
+
+            # PREVIEW GAMBAR
+            if uploaded_file.type.startswith(
+                "image"
+            ):
 
                 image = Image.open(uploaded_file)
 
@@ -278,18 +341,11 @@ elif menu == "Upload Karya":
                     use_container_width=True
                 )
 
-            else:
-                st.info("Preview hanya tersedia untuk file gambar.")
-
-            # TOMBOL DOWNLOAD FILE
-            st.download_button(
-                label="⬇ Download File",
-                data=uploaded_file,
-                file_name=uploaded_file.name
-            )
-
         else:
-            st.error("Harap lengkapi semua data.")
+
+            st.error(
+                "Harap lengkapi semua data."
+            )
 # =========================================
 # TENTANG KAMI
 # =========================================
