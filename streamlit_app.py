@@ -4,7 +4,7 @@ import streamlit as st
 # CONFIG
 # =========================================
 
-app_name = "EduTech Media"
+app_name = "BANTEN MEDIA KOMUNIKA"
 
 st.set_page_config(
     page_title=app_name,
