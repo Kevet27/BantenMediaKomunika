@@ -25,7 +25,7 @@ menus = [
 # SIDEBAR MENU
 # =========================================
 
-st.sidebar.title("📌 Menu Website")
+st.sidebar.title("MENU")
 
 menu = st.sidebar.radio(
     "Pilih Menu",
