@@ -1,466 +1,279 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Website Media Komunikasi</title>
+import streamlit as st
 
-  <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-      font-family: Arial, sans-serif;
-    }
+# =========================================
+# CONFIG
+# =========================================
 
-    body{
-      background:#f4f4f4;
-      color:#333;
-      scroll-behavior:smooth;
-    }
+st.set_page_config(
+    page_title="Website Media Komunikasi",
+    layout="wide"
+)
 
-    /* HEADER */
-    header{
-      background:#1e293b;
-      padding:15px 30px;
-      position:sticky;
-      top:0;
-      z-index:1000;
-    }
+# =========================================
+# DATA MENU DINAMIS
+# =========================================
 
-    nav{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
+menus = [
+    "Home",
+    "Profil",
+    "Portfolio",
+    "Tentang Kami",
+    "Kontak"
+]
 
-    .logo{
-      color:white;
-      font-size:24px;
-      font-weight:bold;
-    }
+# =========================================
+# SIDEBAR MENU
+# =========================================
 
-    .menu{
-      display:flex;
-      list-style:none;
-      gap:20px;
-    }
+st.sidebar.title("📌 Menu Website")
 
-    .menu li a{
-      text-decoration:none;
-      color:white;
-      transition:0.3s;
-      font-weight:bold;
-    }
+menu = st.sidebar.radio(
+    "Pilih Menu",
+    menus
+)
 
-    .menu li a:hover{
-      color:#38bdf8;
-    }
+# =========================================
+# CUSTOM CSS
+# =========================================
 
-    /* HERO */
-    .hero{
-      height:90vh;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      flex-direction:column;
-      text-align:center;
-      background:linear-gradient(to right, #0f172a, #1e3a8a);
-      color:white;
-      padding:20px;
-    }
+st.markdown("""
+<style>
 
-    .hero h1{
-      font-size:50px;
-      margin-bottom:20px;
-    }
+.main {
+    background-color: #f5f5f5;
+}
 
-    .hero p{
-      font-size:20px;
-      max-width:700px;
-      margin-bottom:30px;
-    }
+.title {
+    text-align: center;
+    color: #1e293b;
+    font-size: 50px;
+    font-weight: bold;
+}
 
-    .btn{
-      background:#38bdf8;
-      color:white;
-      padding:12px 25px;
-      border:none;
-      border-radius:5px;
-      text-decoration:none;
-      transition:0.3s;
-    }
+.subtitle {
+    text-align: center;
+    color: gray;
+    font-size: 20px;
+}
 
-    .btn:hover{
-      background:#0ea5e9;
-    }
+.card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
 
-    /* SECTION */
-    section{
-      padding:80px 10%;
-    }
+.portfolio-title {
+    color: #1e293b;
+    font-size: 25px;
+    font-weight: bold;
+}
 
-    .section-title{
-      text-align:center;
-      margin-bottom:50px;
-      font-size:35px;
-      color:#1e293b;
-    }
+</style>
+""", unsafe_allow_html=True)
 
-    /* PROFIL */
-    .profil{
-      display:flex;
-      flex-wrap:wrap;
-      gap:30px;
-      align-items:center;
-    }
+# =========================================
+# HOME
+# =========================================
 
-    .profil img{
-      width:300px;
-      border-radius:10px;
-    }
+if menu == "Home":
 
-    .profil-text{
-      flex:1;
-    }
-
-    /* PORTFOLIO */
-    .portfolio-container{
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(250px,1fr));
-      gap:20px;
-    }
-
-    .card{
-      background:white;
-      border-radius:10px;
-      overflow:hidden;
-      box-shadow:0 4px 10px rgba(0,0,0,0.1);
-      transition:0.3s;
-    }
-
-    .card:hover{
-      transform:translateY(-5px);
-    }
-
-    .card img{
-      width:100%;
-      height:200px;
-      object-fit:cover;
-    }
-
-    .card-content{
-      padding:20px;
-    }
-
-    /* TENTANG */
-    .tentang{
-      text-align:center;
-      line-height:1.8;
-    }
-
-    /* KONTAK */
-    .kontak-container{
-      display:flex;
-      justify-content:center;
-    }
-
-    .kontak-form{
-      background:white;
-      padding:30px;
-      border-radius:10px;
-      width:100%;
-      max-width:500px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.1);
-    }
-
-    .kontak-form input,
-    .kontak-form textarea{
-      width:100%;
-      padding:12px;
-      margin-bottom:15px;
-      border:1px solid #ccc;
-      border-radius:5px;
-      font-size:16px;
-    }
-
-    .kontak-form button{
-      width:100%;
-      background:#1e293b;
-      color:white;
-      padding:12px;
-      border:none;
-      border-radius:5px;
-      cursor:pointer;
-      transition:0.3s;
-      font-size:16px;
-    }
-
-    .kontak-form button:hover{
-      background:#0f172a;
-    }
-
-    .social-media{
-      text-align:center;
-      margin-top:20px;
-    }
-
-    .social-media a{
-      text-decoration:none;
-      margin:0 10px;
-      color:#1e293b;
-      font-weight:bold;
-    }
-
-    .social-media a:hover{
-      color:#38bdf8;
-    }
-
-    /* FOOTER */
-    footer{
-      background:#1e293b;
-      color:white;
-      text-align:center;
-      padding:20px;
-      margin-top:50px;
-    }
-
-    /* RESPONSIVE */
-    @media(max-width:768px){
-
-      .hero h1{
-        font-size:35px;
-      }
-
-      .hero p{
-        font-size:18px;
-      }
-
-      .menu{
-        gap:10px;
-        font-size:14px;
-      }
-
-      .profil{
-        flex-direction:column;
-        text-align:center;
-      }
-
-      .profil img{
-        width:250px;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- HEADER -->
-  <header>
-    <nav>
-      <div class="logo">Banten Media Komunika</div>
-
-      <!-- MENU DINAMIS -->
-      <ul class="menu" id="menu"></ul>
-    </nav>
-  </header>
-
-  <!-- HERO -->
-  <section class="hero" id="home">
-    <h1>Selamat Datang</h1>
-
-    <p>
-      Website media komunikasi modern untuk menampilkan profil,
-      portfolio, dan informasi secara profesional.
-    </p>
-
-    <a href="#portfolio" class="btn">
-      Lihat Portfolio
-    </a>
-  </section>
-
-  <!-- PROFIL -->
-  <section id="profil">
-    <h2 class="section-title">Profil</h2>
-
-    <div class="profil">
-
-      <img src="https://picsum.photos/300/300" alt="profil">
-
-      <div class="profil-text">
-
-        <h3>Nama Anda</h3>
-
-        <br>
-
-        <p>
-          Saya adalah mahasiswa yang sedang belajar web development
-          dan pengembangan media komunikasi digital.
-        </p>
-
-        <br>
-
-        <h4>Skill:</h4>
-
-        <ul>
-          <li>HTML & CSS</li>
-          <li>JavaScript</li>
-          <li>UI/UX Design</li>
-          <li>Web Development</li>
-        </ul>
-
-      </div>
+    st.markdown("""
+    <div class="title">
+        Selamat Datang
     </div>
-  </section>
+    """, unsafe_allow_html=True)
 
-  <!-- PORTFOLIO -->
-  <section id="portfolio">
-
-    <h2 class="section-title">Portfolio</h2>
-
-    <div class="portfolio-container">
-
-      <div class="card">
-        <img src="https://picsum.photos/400/200?1" alt="">
-        <div class="card-content">
-          <h3>Project Website</h3>
-          <p>Membuat website company profile modern.</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="https://picsum.photos/400/200?2" alt="">
-        <div class="card-content">
-          <h3>UI Design</h3>
-          <p>Desain antarmuka aplikasi mobile dan web.</p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="https://picsum.photos/400/200?3" alt="">
-        <div class="card-content">
-          <h3>Media Pembelajaran</h3>
-          <p>Membuat media pembelajaran interaktif digital.</p>
-        </div>
-      </div>
-
+    st.markdown("""
+    <div class="subtitle">
+        Website media komunikasi modern menggunakan Streamlit
     </div>
-  </section>
+    """, unsafe_allow_html=True)
 
-  <!-- TENTANG -->
-  <section id="tentang">
+    st.write("")
 
-    <h2 class="section-title">Tentang Kami</h2>
+    st.image(
+        "https://picsum.photos/1200/400",
+        use_container_width=True
+    )
 
-    <div class="tentang">
+    st.write("")
 
-      <p>
-        Website ini dibuat sebagai media komunikasi dan informasi
-        digital yang modern, responsif, dan mudah dikembangkan.
-      </p>
+    st.markdown("""
+    ### Tentang Website
 
-      <br>
+    Website ini dibuat menggunakan Python dan Streamlit
+    untuk menampilkan profil, portfolio, dan media komunikasi.
+    """)
 
-      <p>
-        Tujuan utama website ini adalah memberikan pengalaman
-        pengguna yang nyaman dan profesional.
-      </p>
+# =========================================
+# PROFIL
+# =========================================
 
-    </div>
-  </section>
+elif menu == "Profil":
 
-  <!-- KONTAK -->
-  <section id="kontak">
+    st.title("👤 Profil")
 
-    <h2 class="section-title">Kontak</h2>
+    col1, col2 = st.columns([1,2])
 
-    <div class="kontak-container">
+    with col1:
+        st.image(
+            "https://picsum.photos/300/300",
+            use_container_width=True
+        )
 
-      <form class="kontak-form">
+    with col2:
 
-        <input type="text" placeholder="Nama Lengkap" required>
+        st.subheader("Nama Anda")
 
-        <input type="email" placeholder="Email" required>
+        st.write("""
+        Saya adalah mahasiswa yang sedang belajar
+        web development dan pengembangan media digital.
+        """)
 
-        <textarea rows="5" placeholder="Tulis pesan Anda..." required></textarea>
+        st.write("### Skill")
 
-        <button type="submit">
-          Kirim Pesan
-        </button>
+        st.write("""
+        - HTML & CSS
+        - Python
+        - Streamlit
+        - JavaScript
+        - UI/UX Design
+        """)
 
-      </form>
+# =========================================
+# PORTFOLIO
+# =========================================
 
-    </div>
+elif menu == "Portfolio":
 
-    <!-- SOCIAL MEDIA -->
-    <div class="social-media">
+    st.title("💼 Portfolio")
 
-      <p>Follow Me</p>
+    # =====================================
+    # DATA PORTFOLIO
+    # =====================================
 
-      <br>
+    portfolios = [
 
-      <a href="#">Instagram</a>
-      <a href="#">GitHub</a>
-      <a href="#">LinkedIn</a>
+        {
+            "title": "Website Company Profile",
+            "desc": "Membuat website modern dan responsive.",
+            "image": "https://picsum.photos/400/200?1"
+        },
 
-    </div>
+        {
+            "title": "Media Pembelajaran",
+            "desc": "Media pembelajaran interaktif berbasis digital.",
+            "image": "https://picsum.photos/400/200?2"
+        },
 
-  </section>
+        {
+            "title": "Sistem Informasi Sekolah",
+            "desc": "Aplikasi pengolahan data sekolah berbasis web.",
+            "image": "https://picsum.photos/400/200?3"
+        }
 
-  <!-- FOOTER -->
-  <footer>
-    <p>© 2026 MyWebsite | All Rights Reserved</p>
-  </footer>
+    ]
 
-  <!-- JAVASCRIPT -->
-  <script>
+    # =====================================
+    # TAMPILKAN PORTFOLIO
+    # =====================================
 
-    /*
-      MENU DINAMIS
-      Tambahkan menu baru cukup di array berikut
-    */
+    cols = st.columns(3)
 
-    const menus = [
-      {
-        name: "Home",
-        link: "#home"
-      },
-      {
-        name: "Profil",
-        link: "#profil"
-      },
-      {
-        name: "Portfolio",
-        link: "#portfolio"
-      },
-      {
-        name: "Tentang Kami",
-        link: "#tentang"
-      },
-      {
-        name: "Kontak",
-        link: "#kontak"
-      }
+    for index, item in enumerate(portfolios):
 
-      // Tambahkan menu baru di sini
-    ];
+        with cols[index % 3]:
 
-    const menuContainer = document.getElementById("menu");
+            st.image(
+                item["image"],
+                use_container_width=True
+            )
 
-    menus.forEach(menu => {
+            st.markdown(f"""
+            <div class="card">
 
-      const li = document.createElement("li");
+            <div class="portfolio-title">
+                {item["title"]}
+            </div>
 
-      li.innerHTML = `
-        <a href="${menu.link}">
-          ${menu.name}
-        </a>
-      `;
+            <br>
 
-      menuContainer.appendChild(li);
+            <p>
+                {item["desc"]}
+            </p>
 
-    });
+            </div>
+            """, unsafe_allow_html=True)
 
-  </script>
+# =========================================
+# TENTANG KAMI
+# =========================================
 
-</body>
-</html>
+elif menu == "Tentang Kami":
+
+    st.title("ℹ️ Tentang Kami")
+
+    st.write("""
+    Website ini dibuat sebagai media komunikasi digital
+    modern yang responsif dan mudah dikembangkan.
+    """)
+
+    st.write("")
+
+    st.write("""
+    ### Tujuan Website
+
+    - Media informasi
+    - Menampilkan portfolio
+    - Branding digital
+    - Media komunikasi
+    - Pengembangan project mahasiswa
+    """)
+
+# =========================================
+# KONTAK
+# =========================================
+
+elif menu == "Kontak":
+
+    st.title("📞 Kontak")
+
+    with st.form("contact_form"):
+
+        nama = st.text_input("Nama Lengkap")
+
+        email = st.text_input("Email")
+
+        pesan = st.text_area("Pesan")
+
+        submit = st.form_submit_button("Kirim Pesan")
+
+        if submit:
+
+            st.success("Pesan berhasil dikirim!")
+
+            st.write("### Data Pesan")
+
+            st.write(f"**Nama:** {nama}")
+            st.write(f"**Email:** {email}")
+            st.write(f"**Pesan:** {pesan}")
+
+    st.write("")
+
+    st.write("### Social Media")
+
+    st.write("""
+    - Instagram
+    - GitHub
+    - LinkedIn
+    """)
+
+# =========================================
+# FOOTER
+# =========================================
+
+st.write("")
+st.write("---")
+st.caption("© 2026 Website Media Komunikasi - Streamlit Version")
