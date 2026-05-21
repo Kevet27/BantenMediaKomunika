@@ -1,8 +1,5 @@
 import streamlit as st
-
-# =========================================
-# CONFIG
-# =========================================
+from PIL import Image
 
 app_name = "BANTEN MEDIA KOMUNIKA"
 
@@ -19,6 +16,7 @@ menus = [
     "Home",
     "Profil",
     "Portfolio",
+    "Upload Karya",
     "Tentang Kami",
     "Kontak"
 ]
@@ -235,6 +233,63 @@ elif menu == "Portfolio":
             </div>
             """, unsafe_allow_html=True)
 
+
+elif menu == "Upload Karya":
+
+    st.title("📤 Upload Karya")
+
+    st.write("""
+    Silakan upload karya atau project Anda.
+    """)
+
+    # INPUT JUDUL
+    judul = st.text_input("Judul Karya")
+
+    # INPUT DESKRIPSI
+    deskripsi = st.text_area("Deskripsi Karya")
+
+    # UPLOAD FILE
+    uploaded_file = st.file_uploader(
+        "Upload File Karya",
+        type=["png", "jpg", "jpeg", "pdf", "docx", "pptx"]
+    )
+
+    # TOMBOL SIMPAN
+    if st.button("Simpan Karya"):
+
+        if judul and deskripsi and uploaded_file:
+
+            st.success("Karya berhasil diupload!")
+
+            st.write("## Detail Karya")
+
+            st.write(f"**Judul:** {judul}")
+            st.write(f"**Deskripsi:** {deskripsi}")
+            st.write(f"**Nama File:** {uploaded_file.name}")
+
+            # PREVIEW FILE GAMBAR
+            if uploaded_file.type.startswith("image"):
+
+                image = Image.open(uploaded_file)
+
+                st.image(
+                    image,
+                    caption="Preview Karya",
+                    use_container_width=True
+                )
+
+            else:
+                st.info("Preview hanya tersedia untuk file gambar.")
+
+            # TOMBOL DOWNLOAD FILE
+            st.download_button(
+                label="⬇ Download File",
+                data=uploaded_file,
+                file_name=uploaded_file.name
+            )
+
+        else:
+            st.error("Harap lengkapi semua data.")
 # =========================================
 # TENTANG KAMI
 # =========================================
