@@ -251,15 +251,24 @@ elif menu == "Portfolio":
                 deskripsi = item[2]
                 file_path = item[3]
 
-                # TAMPILKAN GAMBAR
+                                # TAMPILKAN GAMBAR
                 if file_path.endswith(
                     ("png", "jpg", "jpeg")
                 ):
 
-                    st.image(
-                        file_path,
-                        use_container_width=True
-                    )
+                    # CEK FILE ADA ATAU TIDAK
+                    if os.path.exists(file_path):
+
+                        st.image(
+                            file_path,
+                            use_container_width=True
+                        )
+
+                    else:
+
+                        st.warning(
+                            "File gambar tidak ditemukan."
+                        )
 
                 st.markdown(f"""
                 <div class="card">
