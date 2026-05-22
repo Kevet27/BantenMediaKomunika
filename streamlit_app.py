@@ -159,9 +159,9 @@ if menu == "Home":
     st.write("")
 
     st.image(
-        "https://picsum.photos/1200/400",
-        use_container_width=True
-    )
+    "logo.png",
+    use_container_width=True
+)
 
     st.write("")
 
