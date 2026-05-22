@@ -159,7 +159,7 @@ if menu == "Home":
     st.write("")
 
     st.image(
-    "logo.png",
+    "banner.png",
     use_container_width=True
 )
 
