@@ -3,12 +3,24 @@ from PIL import Image
 import sqlite3
 import os
 
+# =========================================
+# CONFIG
+# =========================================
+
 app_name = "BANTEN MEDIA KOMUNIKA"
 
 st.set_page_config(
     page_title=app_name,
     layout="wide"
 )
+
+# =========================================
+# SESSION LOGIN ADMIN
+# =========================================
+
+if "admin_login" not in st.session_state:
+    st.session_state.admin_login = False
+
 # =========================================
 # FOLDER UPLOAD
 # =========================================
@@ -39,6 +51,7 @@ CREATE TABLE IF NOT EXISTS portfolio (
 """)
 
 conn.commit()
+
 # =========================================
 # DATA MENU
 # =========================================
@@ -48,6 +61,7 @@ menus = [
     "Profil",
     "Portfolio",
     "Upload Karya",
+    "Admin",
     "Tentang Kami",
     "Kontak"
 ]
@@ -76,7 +90,6 @@ st.markdown("""
     font-size: 30px;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 15px;
 }
 
 /* TITLE */
@@ -120,7 +133,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================
-# NAVBAR ATAS
+# NAVBAR
 # =========================================
 
 st.markdown(f"""
@@ -129,7 +142,10 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# MENU BERBARIS KE SAMPING
+# =========================================
+# MENU
+# =========================================
+
 menu = st.radio(
     "Navigasi Menu",
     menus,
@@ -158,13 +174,11 @@ if menu == "Home":
 
     st.write("")
 
-    st.write("")
-
     st.markdown("""
-    ### Tentang Website
+    ### Selamat Datang
 
-    Website ini dibuat menggunakan Python dan Streamlit
-    untuk menampilkan profil, portfolio, dan media komunikasi.
+    Platform media komunikasi digital modern
+    untuk menampilkan karya dan informasi.
     """)
 
 # =========================================
@@ -178,6 +192,7 @@ elif menu == "Profil":
     col1, col2 = st.columns([1,2])
 
     with col1:
+
         st.image(
             "https://picsum.photos/300/300",
             use_container_width=True
@@ -267,8 +282,42 @@ elif menu == "Portfolio":
                         label="⬇ Download File",
                         data=file,
                         file_name=os.path.basename(file_path),
-                        key=id_portfolio
+                        key=f"download_{id_portfolio}"
                     )
+
+                # =========================================
+                # TOMBOL HAPUS KHUSUS ADMIN
+                # =========================================
+
+                if st.session_state.admin_login:
+
+                    if st.button(
+                        f"🗑 Hapus Karya",
+                        key=f"hapus_{id_portfolio}"
+                    ):
+
+                        # HAPUS FILE
+                        if os.path.exists(file_path):
+
+                            os.remove(file_path)
+
+                        # HAPUS DATABASE
+                        c.execute(
+                            "DELETE FROM portfolio WHERE id = ?",
+                            (id_portfolio,)
+                        )
+
+                        conn.commit()
+
+                        st.success(
+                            "Karya berhasil dihapus!"
+                        )
+
+                        st.rerun()
+
+# =========================================
+# UPLOAD KARYA
+# =========================================
 
 elif menu == "Upload Karya":
 
@@ -298,6 +347,7 @@ elif menu == "Upload Karya":
             )
 
             with open(file_path, "wb") as f:
+
                 f.write(
                     uploaded_file.getbuffer()
                 )
@@ -341,6 +391,45 @@ elif menu == "Upload Karya":
             st.error(
                 "Harap lengkapi semua data."
             )
+
+# =========================================
+# ADMIN LOGIN
+# =========================================
+
+elif menu == "Admin":
+
+    st.title("🔐 Login Admin")
+
+    username = st.text_input("Username")
+
+    password = st.text_input(
+        "Password",
+        type="password"
+    )
+
+    if st.button("Login Admin"):
+
+        if username == "admin" and password == "12345":
+
+            st.session_state.admin_login = True
+
+            st.success("Login admin berhasil!")
+
+        else:
+
+            st.error("Username atau password salah")
+
+    # STATUS LOGIN
+    if st.session_state.admin_login:
+
+        st.success("Anda login sebagai admin")
+
+        if st.button("Logout"):
+
+            st.session_state.admin_login = False
+
+            st.rerun()
+
 # =========================================
 # TENTANG KAMI
 # =========================================
@@ -374,43 +463,25 @@ elif menu == "Kontak":
 
     st.title("📞 Kontak")
 
-    with st.container():
+    with st.form("contact_form"):
 
-        st.markdown("""
-        <div class="contact-box">
-        """, unsafe_allow_html=True)
+        nama = st.text_input("Nama Lengkap")
 
-        with st.form("contact_form"):
+        email = st.text_input("Email")
 
-            nama = st.text_input("Nama Lengkap")
+        pesan = st.text_area("Pesan")
 
-            email = st.text_input("Email")
+        submit = st.form_submit_button("Kirim Pesan")
 
-            pesan = st.text_area("Pesan")
+        if submit:
 
-            submit = st.form_submit_button("Kirim Pesan")
+            st.success("Pesan berhasil dikirim!")
 
-            if submit:
+            st.write("### Data Pesan")
 
-                st.success("Pesan berhasil dikirim!")
-
-                st.write("### Data Pesan")
-
-                st.write(f"**Nama:** {nama}")
-                st.write(f"**Email:** {email}")
-                st.write(f"**Pesan:** {pesan}")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.write("")
-
-    st.write("### Social Media")
-
-    st.write("""
-    - Instagram
-    - GitHub
-    - LinkedIn
-    """)
+            st.write(f"**Nama:** {nama}")
+            st.write(f"**Email:** {email}")
+            st.write(f"**Pesan:** {pesan}")
 
 # =========================================
 # FOOTER
@@ -418,4 +489,4 @@ elif menu == "Kontak":
 
 st.write("")
 st.write("---")
-st.caption(f"© 2026 {app_name} - Streamlit Version")
+st.caption(f"© 2026 {app_name} - Streamlit Version")v
