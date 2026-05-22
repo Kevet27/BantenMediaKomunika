@@ -489,4 +489,4 @@ elif menu == "Kontak":
 
 st.write("")
 st.write("---")
-st.caption(f"© 2026 {app_name} - Streamlit Version")v
+st.caption(f"© 2026 {app_name} - Streamlit Version")
