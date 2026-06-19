@@ -24,7 +24,7 @@ conn = sqlite3.connect(
 
 c = conn.cursor()
 
-# ================= TABEL USERS =================
+# ================= TABEL =================
 
 c.execute("""
 CREATE TABLE IF NOT EXISTS users(
@@ -33,8 +33,6 @@ username TEXT UNIQUE,
 password TEXT
 )
 """)
-
-# ================= TABEL PRODUK =================
 
 c.execute("""
 CREATE TABLE IF NOT EXISTS produk(
@@ -45,8 +43,6 @@ gambar TEXT
 )
 """)
 
-# ================= TABEL KERANJANG =================
-
 c.execute("""
 CREATE TABLE IF NOT EXISTS keranjang(
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,8 +51,6 @@ produk TEXT,
 harga INTEGER
 )
 """)
-
-# ================= TABEL PESANAN =================
 
 c.execute("""
 CREATE TABLE IF NOT EXISTS pesanan(
@@ -86,7 +80,8 @@ def hash_password(password):
         password.encode()
     ).hexdigest()
 
-# ================= LOGIN PAGE =================
+
+# ================= LOGIN =================
 
 def login_page():
 
@@ -94,50 +89,34 @@ def login_page():
 
     menu = st.selectbox(
         "Menu",
-        ["Login", "Register"]
+        ["Login","Register"]
     )
 
-    # REGISTER
     if menu == "Register":
 
-        user = st.text_input(
+        username = st.text_input(
             "Username"
         )
 
-        pw = st.text_input(
+        password = st.text_input(
             "Password",
             type="password"
         )
 
         if st.button("Daftar"):
 
-            c.execute(
-                """
-                SELECT *
-                FROM users
-                WHERE username=?
-                """,
-                (user,)
-            )
-
-            if c.fetchone():
-
-                st.error(
-                    "Username sudah digunakan"
-                )
-
-            else:
+            try:
 
                 c.execute(
-                    """
-                    INSERT INTO users
-                    (username,password)
-                    VALUES(?,?)
-                    """,
-                    (
-                        user,
-                        hash_password(pw)
-                    )
+                """
+                INSERT INTO users
+                (username,password)
+                VALUES(?,?)
+                """,
+                (
+                    username,
+                    hash_password(password)
+                )
                 )
 
                 conn.commit()
@@ -146,14 +125,19 @@ def login_page():
                     "Akun berhasil dibuat"
                 )
 
-    # LOGIN
+            except:
+
+                st.error(
+                    "Username sudah digunakan"
+                )
+
     else:
 
-        user = st.text_input(
+        username = st.text_input(
             "Username"
         )
 
-        pw = st.text_input(
+        password = st.text_input(
             "Password",
             type="password"
         )
@@ -161,16 +145,16 @@ def login_page():
         if st.button("Login"):
 
             c.execute(
-                """
-                SELECT *
-                FROM users
-                WHERE username=?
-                AND password=?
-                """,
-                (
-                    user,
-                    hash_password(pw)
-                )
+            """
+            SELECT *
+            FROM users
+            WHERE username=?
+            AND password=?
+            """,
+            (
+                username,
+                hash_password(password)
+            )
             )
 
             data = c.fetchone()
@@ -178,11 +162,7 @@ def login_page():
             if data:
 
                 st.session_state.login = True
-                st.session_state.user = user
-
-                st.success(
-                    "Login berhasil"
-                )
+                st.session_state.user = username
 
                 st.rerun()
 
@@ -191,11 +171,12 @@ def login_page():
                 st.error(
                     "Username atau password salah"
                 )
+
 # ================= BERANDA =================
 
 def home():
 
-    st.title("🏠 Beranda TILAS BUT RAOS")
+    st.title("🏠 Beranda")
 
     data = c.execute(
         "SELECT * FROM produk"
@@ -209,20 +190,23 @@ def home():
 
     else:
 
-        cols = st.columns(3)
+        col = st.columns(3)
 
         nomor = 0
 
         for p in data:
 
-            with cols[nomor % 3]:
+            with col[nomor % 3]:
 
                 if p[3] != "":
+
                     try:
+
                         st.image(
                             "gambar_produk/" + p[3],
                             use_container_width=True
                         )
+
                     except:
                         pass
 
@@ -244,22 +228,22 @@ def home():
                 ):
 
                     c.execute(
-                        """
-                        INSERT INTO keranjang
-                        (user,produk,harga)
-                        VALUES(?,?,?)
-                        """,
-                        (
-                            st.session_state.user,
-                            p[1],
-                            p[2]
-                        )
+                    """
+                    INSERT INTO keranjang
+                    (user,produk,harga)
+                    VALUES(?,?,?)
+                    """,
+                    (
+                        st.session_state.user,
+                        p[1],
+                        p[2]
+                    )
                     )
 
                     conn.commit()
 
                     st.success(
-                        "Produk masuk keranjang"
+                        "Produk ditambahkan"
                     )
 
             nomor += 1
@@ -272,14 +256,14 @@ def cart():
     st.title("🛒 Keranjang")
 
     data = c.execute(
-        """
-        SELECT id,produk,harga
-        FROM keranjang
-        WHERE user=?
-        """,
-        (
-            st.session_state.user,
-        )
+    """
+    SELECT *
+    FROM keranjang
+    WHERE user=?
+    """,
+    (
+        st.session_state.user,
+    )
     ).fetchall()
 
     total = 0
@@ -299,10 +283,10 @@ def cart():
             with col1:
 
                 st.write(
-                    x[1],
+                    x[2],
                     "- Rp",
                     format(
-                        x[2],
+                        x[3],
                         ","
                     )
                 )
@@ -315,23 +299,24 @@ def cart():
                 ):
 
                     c.execute(
-                        """
-                        DELETE FROM keranjang
-                        WHERE id=?
-                        """,
-                        (
-                            x[0],
-                        )
+                    """
+                    DELETE FROM keranjang
+                    WHERE id=?
+                    """,
+                    (
+                        x[0],
+                    )
                     )
 
                     conn.commit()
 
                     st.rerun()
 
-            total += x[2]
+            total += x[3]
 
         st.subheader(
-            "Total : Rp " +
+            "Total : Rp "
+            +
             format(
                 total,
                 ","
@@ -345,25 +330,26 @@ def checkout():
 
     st.title("📦 Checkout")
 
-    data = c.execute(
-        """
-        SELECT harga
-        FROM keranjang
-        WHERE user=?
-        """,
-        (
-            st.session_state.user,
-        )
-    ).fetchall()
-
     total = 0
+
+    data = c.execute(
+    """
+    SELECT harga
+    FROM keranjang
+    WHERE user=?
+    """,
+    (
+        st.session_state.user,
+    )
+    ).fetchall()
 
     for x in data:
 
         total += x[0]
 
-    st.write(
-        "Total Belanja : Rp",
+    st.subheader(
+        "Total Belanja : Rp "
+        +
         format(
             total,
             ","
@@ -388,29 +374,29 @@ def checkout():
     ):
 
         c.execute(
-            """
-            INSERT INTO pesanan
-            (user,alamat,pembayaran,total)
-            VALUES(?,?,?,?)
-            """,
-            (
-                st.session_state.user,
-                alamat,
-                pembayaran,
-                total
-            )
+        """
+        INSERT INTO pesanan
+        (user,alamat,pembayaran,total)
+        VALUES(?,?,?,?)
+        """,
+        (
+            st.session_state.user,
+            alamat,
+            pembayaran,
+            total
+        )
         )
 
         conn.commit()
 
         c.execute(
-            """
-            DELETE FROM keranjang
-            WHERE user=?
-            """,
-            (
-                st.session_state.user,
-            )
+        """
+        DELETE FROM keranjang
+        WHERE user=?
+        """,
+        (
+            st.session_state.user,
+        )
         )
 
         conn.commit()
@@ -420,7 +406,7 @@ def checkout():
         )
 
 
-# ================= RIWAYAT =================
+# ================= RIWAYAT PESANAN =================
 
 def riwayat():
 
@@ -429,14 +415,14 @@ def riwayat():
     )
 
     data = c.execute(
-        """
-        SELECT alamat,pembayaran,total
-        FROM pesanan
-        WHERE user=?
-        """,
-        (
-            st.session_state.user,
-        )
+    """
+    SELECT *
+    FROM pesanan
+    WHERE user=?
+    """,
+    (
+        st.session_state.user,
+    )
     ).fetchall()
 
     if len(data) == 0:
@@ -451,263 +437,20 @@ def riwayat():
 
             st.write(
                 "Alamat :",
-                x[0]
+                x[2]
             )
 
             st.write(
                 "Pembayaran :",
-                x[1]
+                x[3]
             )
 
             st.write(
                 "Total : Rp",
                 format(
-                    x[2],
+                    x[4],
                     ","
                 )
             )
 
             st.divider()
-# ================= ADMIN PRODUK =================
-
-def admin_produk():
-
-    st.title("⚙️ Admin Produk")
-
-    st.subheader("Tambah Produk")
-
-    nama = st.text_input(
-        "Nama Produk"
-    )
-
-    harga = st.number_input(
-        "Harga Produk",
-        min_value=1000,
-        step=1000
-    )
-
-    gambar = st.file_uploader(
-        "Upload Foto Produk",
-        type=["jpg", "jpeg", "png"]
-    )
-
-    if st.button("Tambah Produk"):
-
-        nama_file = ""
-
-        if gambar is not None:
-
-            nama_file = gambar.name
-
-            with open(
-                os.path.join(
-                    "gambar_produk",
-                    nama_file
-                ),
-                "wb"
-            ) as f:
-
-                f.write(
-                    gambar.getbuffer()
-                )
-
-        c.execute(
-            """
-            INSERT INTO produk
-            (nama,harga,gambar)
-            VALUES(?,?,?)
-            """,
-            (
-                nama,
-                int(harga),
-                nama_file
-            )
-        )
-
-        conn.commit()
-
-        st.success(
-            "Produk berhasil ditambahkan"
-        )
-
-        st.rerun()
-
-    st.divider()
-
-    st.subheader(
-        "Daftar Produk"
-    )
-
-    data = c.execute(
-        "SELECT * FROM produk"
-    ).fetchall()
-
-    for p in data:
-
-        st.divider()
-
-        col1, col2 = st.columns([1, 2])
-
-        with col1:
-
-            if p[3] != "":
-
-                try:
-
-                    st.image(
-                        "gambar_produk/" + p[3],
-                        width=150
-                    )
-
-                except:
-                    pass
-
-        with col2:
-
-            nama_baru = st.text_input(
-                "Nama Produk",
-                value=p[1],
-                key="nama"+str(p[0])
-            )
-
-            harga_baru = st.number_input(
-                "Harga",
-                value=int(p[2]),
-                step=1000,
-                key="harga"+str(p[0])
-            )
-
-            gambar_baru = st.file_uploader(
-                "Ganti Foto",
-                type=["jpg", "jpeg", "png"],
-                key="gambar"+str(p[0])
-            )
-
-            if st.button(
-                "Update",
-                key="update"+str(p[0])
-            ):
-
-                nama_file = p[3]
-
-                if gambar_baru is not None:
-
-                    nama_file = gambar_baru.name
-
-                    with open(
-                        os.path.join(
-                            "gambar_produk",
-                            nama_file
-                        ),
-                        "wb"
-                    ) as f:
-
-                        f.write(
-                            gambar_baru.getbuffer()
-                        )
-
-                c.execute(
-                    """
-                    UPDATE produk
-                    SET nama=?,
-                    harga=?,
-                    gambar=?
-                    WHERE id=?
-                    """,
-                    (
-                        nama_baru,
-                        int(harga_baru),
-                        nama_file,
-                        p[0]
-                    )
-                )
-
-                conn.commit()
-
-                st.success(
-                    "Produk berhasil diperbarui"
-                )
-
-                st.rerun()
-
-            if st.button(
-                "Hapus",
-                key="hapusproduk"+str(p[0])
-            ):
-
-                c.execute(
-                    """
-                    DELETE FROM produk
-                    WHERE id=?
-                    """,
-                    (
-                        p[0],
-                    )
-                )
-
-                conn.commit()
-
-                st.rerun()
-
-
-# ================= MENU UTAMA =================
-
-if not st.session_state.login:
-
-    login_page()
-
-else:
-
-    if st.session_state.user == "admin":
-
-        menu = st.sidebar.selectbox(
-            "Menu",
-            [
-                "Beranda",
-                "Keranjang",
-                "Checkout",
-                "Riwayat Pesanan",
-                "Admin Produk",
-                "Logout"
-            ]
-        )
-
-    else:
-
-        menu = st.sidebar.selectbox(
-            "Menu",
-            [
-                "Beranda",
-                "Keranjang",
-                "Checkout",
-                "Riwayat Pesanan",
-                "Logout"
-            ]
-        )
-
-    if menu == "Beranda":
-
-        home()
-
-    elif menu == "Keranjang":
-
-        cart()
-
-    elif menu == "Checkout":
-
-        checkout()
-
-    elif menu == "Riwayat Pesanan":
-
-        riwayat()
-
-    elif menu == "Admin Produk":
-
-        admin_produk()
-
-    elif menu == "Logout":
-
-        st.session_state.login = False
-        st.session_state.user = ""
-
-        st.rerun()
