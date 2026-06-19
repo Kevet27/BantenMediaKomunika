@@ -1,501 +1,316 @@
 import streamlit as st
-from PIL import Image
 import sqlite3
-import os
+import hashlib
 
-# =========================================
-# CONFIG
-# =========================================
+# ================= DATABASE =================
 
-app_name = "BANTEN MEDIA KOMUNIKA"
-
-st.set_page_config(
-    page_title=app_name,
-    layout="wide"
-)
-
-# =========================================
-# SESSION LOGIN ADMIN
-# =========================================
-
-if "admin_login" not in st.session_state:
-    st.session_state.admin_login = False
-
-# =========================================
-# FOLDER UPLOAD
-# =========================================
-
-UPLOAD_FOLDER = "uploads"
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-# =========================================
-# DATABASE SQLITE
-# =========================================
-
-conn = sqlite3.connect(
-    "portfolio.db",
-    check_same_thread=False
-)
-
+conn = sqlite3.connect("tilas_raos.db")
 c = conn.cursor()
 
 c.execute("""
-CREATE TABLE IF NOT EXISTS portfolio (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    judul TEXT,
-    deskripsi TEXT,
-    file_path TEXT
+CREATE TABLE IF NOT EXISTS users(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+username TEXT,
+password TEXT
+)
+""")
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS produk(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+nama TEXT,
+harga INTEGER
+)
+""")
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS keranjang(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+user TEXT,
+produk TEXT,
+harga INTEGER
+)
+""")
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS pesanan(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+user TEXT,
+alamat TEXT,
+pembayaran TEXT
 )
 """)
 
 conn.commit()
 
-# =========================================
-# DATA MENU
-# =========================================
 
-menus = [
-    "Home",
-    "Profil",
-    "Portfolio",
-    "Upload Karya",
-    "Admin",
-    "Tentang Kami",
-    "Kontak"
+# ================= DATA PRODUK =================
+
+produk_awal=[
+("Kaos Premium",75000),
+("Hoodie Casual",150000),
+("Kemeja Fashion",120000)
 ]
 
-# =========================================
-# CUSTOM CSS
-# =========================================
-
-st.markdown("""
-<style>
-
-.main {
-    background-color: #f5f5f5;
-}
-
-/* NAVBAR */
-.navbar {
-    background-color: #1e293b;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 30px;
-}
-
-.nav-title {
-    color: white;
-    font-size: 30px;
-    font-weight: bold;
-    text-align: center;
-}
-
-/* TITLE */
-.title {
-    text-align: center;
-    color: #1e293b;
-    font-size: 50px;
-    font-weight: bold;
-}
-
-.subtitle {
-    text-align: center;
-    color: gray;
-    font-size: 20px;
-}
-
-/* CARD */
-.card {
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.portfolio-title {
-    color: #1e293b;
-    font-size: 25px;
-    font-weight: bold;
-}
-
-/* KONTAK */
-.contact-box {
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0px 2px 10px rgba(0,0,0,0.1);
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# =========================================
-# NAVBAR
-# =========================================
-
-st.markdown(f"""
-<div class="navbar">
-    <div class="nav-title">{app_name}</div>
-</div>
-""", unsafe_allow_html=True)
-
-# =========================================
-# MENU
-# =========================================
-
-menu = st.radio(
-    "Navigasi Menu",
-    menus,
-    horizontal=True
-)
-
-st.write("")
-
-# =========================================
-# HOME
-# =========================================
-
-if menu == "Home":
-
-    st.markdown(f"""
-    <div class="title">
-        {app_name}
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="subtitle">
-        Website media komunikasi modern menggunakan Streamlit
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.write("")
-
-    st.markdown("""
-    ### Selamat Datang
-
-    Platform media komunikasi digital modern
-    untuk menampilkan karya dan informasi.
-    """)
-
-# =========================================
-# PROFIL
-# =========================================
-
-elif menu == "Profil":
-
-    st.title("👤 Profil")
-
-    col1, col2 = st.columns([1,2])
-
-    with col1:
-
-        st.image(
-            "https://picsum.photos/300/300",
-            use_container_width=True
-        )
-
-    with col2:
-
-        st.subheader("Nama Anda")
-
-        st.write("""
-        Saya adalah mahasiswa yang sedang belajar
-        web development dan pengembangan media digital.
-        """)
-
-        st.write("### Skill")
-
-        st.write("""
-        - HTML & CSS
-        - Python
-        - Streamlit
-        - JavaScript
-        - UI/UX Design
-        """)
-
-# =========================================
-# PORTFOLIO
-# =========================================
-
-elif menu == "Portfolio":
-
-    st.title("💼 Portfolio")
-
-    st.write("Berikut karya yang telah diupload:")
-
-    # AMBIL DATA DATABASE
+for p in produk_awal:
     c.execute(
-        "SELECT * FROM portfolio ORDER BY id DESC"
+    "SELECT * FROM produk WHERE nama=?",
+    (p[0],)
     )
 
-    data_portfolio = c.fetchall()
+    if not c.fetchone():
 
-    if len(data_portfolio) == 0:
+        c.execute(
+        "INSERT INTO produk(nama,harga) VALUES(?,?)",
+        p
+        )
 
-        st.info("Belum ada karya yang diupload.")
+conn.commit()
+
+
+# ================= SESSION =================
+
+if "login" not in st.session_state:
+    st.session_state.login=False
+
+if "user" not in st.session_state:
+    st.session_state.user=""
+
+
+
+def hash_password(p):
+
+    return hashlib.sha256(
+        p.encode()
+    ).hexdigest()
+
+
+
+# ================= LOGIN =================
+
+def login_page():
+
+    st.title("👕 TILAS BUT RAOS")
+
+    menu=st.selectbox(
+        "Menu",
+        ["Login","Register"]
+    )
+
+    if menu=="Register":
+
+        user=st.text_input("Username")
+        pw=st.text_input(
+            "Password",
+            type="password"
+        )
+
+        if st.button("Daftar"):
+
+            c.execute(
+            "INSERT INTO users(username,password) VALUES(?,?)",
+            (
+            user,
+            hash_password(pw)
+            )
+            )
+
+            conn.commit()
+
+            st.success("Akun berhasil dibuat")
 
     else:
 
-        cols = st.columns(3)
+        user=st.text_input("Username")
+        pw=st.text_input(
+            "Password",
+            type="password"
+        )
 
-        for index, item in enumerate(data_portfolio):
+        if st.button("Login"):
 
-            with cols[index % 3]:
-
-                id_portfolio = item[0]
-                judul = item[1]
-                deskripsi = item[2]
-                file_path = item[3]
-
-                                # TAMPILKAN GAMBAR
-                if file_path.endswith(
-                    ("png", "jpg", "jpeg")
-                ):
-
-                    # CEK FILE ADA ATAU TIDAK
-                    if os.path.exists(file_path):
-
-                        st.image(
-                            file_path,
-                            use_container_width=True
-                        )
-
-                    else:
-
-                        st.warning(
-                            "File gambar tidak ditemukan."
-                        )
-
-                st.markdown(f"""
-                <div class="card">
-
-                <div class="portfolio-title">
-                    {judul}
-                </div>
-
-                <br>
-
-                <p>{deskripsi}</p>
-
-                </div>
-                """, unsafe_allow_html=True)
-
-                # DOWNLOAD FILE
-                with open(file_path, "rb") as file:
-
-                    st.download_button(
-                        label="⬇ Download File",
-                        data=file,
-                        file_name=os.path.basename(file_path),
-                        key=f"download_{id_portfolio}"
-                    )
-
-                # =========================================
-                # TOMBOL HAPUS KHUSUS ADMIN
-                # =========================================
-
-                if st.session_state.admin_login:
-
-                    if st.button(
-                        f"🗑 Hapus Karya",
-                        key=f"hapus_{id_portfolio}"
-                    ):
-
-                        # HAPUS FILE
-                        if os.path.exists(file_path):
-
-                            os.remove(file_path)
-
-                        # HAPUS DATABASE
-                        c.execute(
-                            "DELETE FROM portfolio WHERE id = ?",
-                            (id_portfolio,)
-                        )
-
-                        conn.commit()
-
-                        st.success(
-                            "Karya berhasil dihapus!"
-                        )
-
-                        st.rerun()
-
-# =========================================
-# UPLOAD KARYA
-# =========================================
-
-elif menu == "Upload Karya":
-
-    st.title("📤 Upload Karya")
-
-    st.write("""
-    Silakan upload karya atau project Anda.
-    """)
-
-    judul = st.text_input("Judul Karya")
-
-    deskripsi = st.text_area("Deskripsi Karya")
-
-    uploaded_file = st.file_uploader(
-        "Upload File Karya",
-        type=["png", "jpg", "jpeg", "pdf", "docx", "pptx"]
-    )
-
-    if st.button("Simpan Karya"):
-
-        if judul and deskripsi and uploaded_file:
-
-            # SIMPAN FILE
-            file_path = os.path.join(
-                UPLOAD_FOLDER,
-                uploaded_file.name
+            c.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (
+            user,
+            hash_password(pw)
+            )
             )
 
-            with open(file_path, "wb") as f:
+            data=c.fetchone()
 
-                f.write(
-                    uploaded_file.getbuffer()
-                )
+            if data:
 
-            # SIMPAN DATABASE
+                st.session_state.login=True
+                st.session_state.user=user
+
+                st.success("Login berhasil")
+
+                st.rerun()
+
+            else:
+
+                st.error("Login gagal")
+
+
+
+
+# ================= BERANDA =================
+
+def home():
+
+    st.title("🏠 Beranda TILAS BUT RAOS")
+
+    data=c.execute(
+    "SELECT * FROM produk"
+    ).fetchall()
+
+    for p in data:
+
+        st.subheader(p[1])
+
+        st.write(
+        "Harga : Rp",
+        p[2]
+        )
+
+        if st.button(
+            "Tambah Keranjang",
+            key=p[0]
+        ):
+
             c.execute(
-                """
-                INSERT INTO portfolio
-                (judul, deskripsi, file_path)
-
-                VALUES (?, ?, ?)
-                """,
-                (
-                    judul,
-                    deskripsi,
-                    file_path
-                )
+            """
+            INSERT INTO keranjang
+            (user,produk,harga)
+            VALUES(?,?,?)
+            """,
+            (
+            st.session_state.user,
+            p[1],
+            p[2]
+            )
             )
 
             conn.commit()
 
             st.success(
-                "Karya berhasil diupload dan masuk ke portfolio!"
+            "Masuk keranjang"
             )
 
-            # PREVIEW GAMBAR
-            if uploaded_file.type.startswith(
-                "image"
-            ):
 
-                image = Image.open(uploaded_file)
 
-                st.image(
-                    image,
-                    caption="Preview Karya",
-                    use_container_width=True
-                )
+# ================= CART =================
 
-        else:
+def cart():
 
-            st.error(
-                "Harap lengkapi semua data."
-            )
+    st.title("🛒 Keranjang")
 
-# =========================================
-# ADMIN LOGIN
-# =========================================
+    data=c.execute(
+    """
+    SELECT produk,harga 
+    FROM keranjang
+    WHERE user=?
+    """,
+    (st.session_state.user,)
+    ).fetchall()
 
-elif menu == "Admin":
+    total=0
 
-    st.title("🔐 Login Admin")
+    for x in data:
 
-    username = st.text_input("Username")
+        st.write(
+        x[0],
+        "- Rp",
+        x[1]
+        )
 
-    password = st.text_input(
-        "Password",
-        type="password"
+        total+=x[1]
+
+    st.write(
+    "Total : Rp",
+    total
     )
 
-    if st.button("Login Admin"):
+    if st.button("Checkout"):
 
-        if username == "admin" and password == "12345":
+        st.session_state.checkout=True
 
-            st.session_state.admin_login = True
 
-            st.success("Login admin berhasil!")
 
-        else:
 
-            st.error("Username atau password salah")
+# ================= CHECKOUT =================
 
-    # STATUS LOGIN
-    if st.session_state.admin_login:
+def checkout():
 
-        st.success("Anda login sebagai admin")
+    st.title("📦 Checkout")
 
-        if st.button("Logout"):
+    alamat=st.text_area(
+        "Alamat Pembeli"
+    )
 
-            st.session_state.admin_login = False
+    bayar=st.selectbox(
+        "Pembayaran",
+        [
+        "Transfer Bank",
+        "Dana",
+        "OVO"
+        ]
+    )
 
-            st.rerun()
+    if st.button("Bayar"):
 
-# =========================================
-# TENTANG KAMI
-# =========================================
+        c.execute(
+        """
+        INSERT INTO pesanan
+        (user,alamat,pembayaran)
+        VALUES(?,?,?)
+        """,
+        (
+        st.session_state.user,
+        alamat,
+        bayar
+        )
+        )
 
-elif menu == "Tentang Kami":
+        conn.commit()
 
-    st.title("ℹ️ Tentang Kami")
+        st.success(
+        "Pembayaran berhasil"
+        )
 
-    st.write(f"""
-    {app_name} dibuat sebagai media komunikasi digital
-    modern yang responsif dan mudah dikembangkan.
-    """)
 
-    st.write("")
 
-    st.write("""
-    ### Tujuan Website
 
-    - Media informasi
-    - Menampilkan portfolio
-    - Branding digital
-    - Media komunikasi
-    - Pengembangan project mahasiswa
-    """)
+# ================= MAIN =================
 
-# =========================================
-# KONTAK
-# =========================================
+if not st.session_state.login:
 
-elif menu == "Kontak":
+    login_page()
 
-    st.title("📞 Kontak")
+else:
 
-    with st.form("contact_form"):
+    menu=st.sidebar.selectbox(
+        "Menu",
+        [
+        "Beranda",
+        "Keranjang",
+        "Checkout",
+        "Logout"
+        ]
+    )
 
-        nama = st.text_input("Nama Lengkap")
+    if menu=="Beranda":
+        home()
 
-        email = st.text_input("Email")
+    elif menu=="Keranjang":
+        cart()
 
-        pesan = st.text_area("Pesan")
+    elif menu=="Checkout":
+        checkout()
 
-        submit = st.form_submit_button("Kirim Pesan")
+    else:
 
-        if submit:
+        st.session_state.login=False
+        st.rerun()
 
-            st.success("Pesan berhasil dikirim!")
-
-            st.write("### Data Pesan")
-
-            st.write(f"**Nama:** {nama}")
-            st.write(f"**Email:** {email}")
-            st.write(f"**Pesan:** {pesan}")
-
-# =========================================
-# FOOTER
-# =========================================
-
-st.write("")
-st.write("---")
-st.caption(f"© 2026 {app_name} - Streamlit Version")
