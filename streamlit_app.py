@@ -1,316 +1,201 @@
 import streamlit as st
 import sqlite3
-import hashlib
+import pandas as pd
 
-# ================= DATABASE =================
-
-conn = sqlite3.connect("tilas_raos.db")
+# =====================
+# DATABASE
+# =====================
+conn = sqlite3.connect("trip.db", check_same_thread=False)
 c = conn.cursor()
 
+# tabel trip
 c.execute("""
-CREATE TABLE IF NOT EXISTS users(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-username TEXT,
-password TEXT
-)
-""")
-
-c.execute("""
-CREATE TABLE IF NOT EXISTS produk(
+CREATE TABLE IF NOT EXISTS trip(
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 nama TEXT,
+kategori TEXT,
+tanggal TEXT,
 harga INTEGER
 )
 """)
 
+# tabel peserta
 c.execute("""
-CREATE TABLE IF NOT EXISTS keranjang(
+CREATE TABLE IF NOT EXISTS peserta(
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-user TEXT,
-produk TEXT,
-harga INTEGER
+nama TEXT,
+usia INTEGER,
+hp TEXT,
+trip TEXT
 )
 """)
+conn.commit()
 
-c.execute("""
-CREATE TABLE IF NOT EXISTS pesanan(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-user TEXT,
-alamat TEXT,
-pembayaran TEXT
+# =====================
+# SIDEBAR
+# =====================
+menu = st.sidebar.selectbox(
+    "Menu",
+    ["Beranda","Trip","Admin"]
 )
-""")
 
-conn.commit()
+# =====================
+# BERANDA
+# =====================
+if menu=="Beranda":
 
+    st.title("🏔 OPEN TRIP GUNUNG & CURUG")
 
-# ================= DATA PRODUK =================
-
-produk_awal=[
-("Kaos Premium",75000),
-("Hoodie Casual",150000),
-("Kemeja Fashion",120000)
-]
-
-for p in produk_awal:
-    c.execute(
-    "SELECT * FROM produk WHERE nama=?",
-    (p[0],)
+    st.image(
+        "https://images.unsplash.com/photo-1464822759023-fed622ff2c3",
+        use_container_width=True
     )
 
-    if not c.fetchone():
+    st.write("""
+    Selamat datang di Open Trip Adventure.
 
-        c.execute(
-        "INSERT INTO produk(nama,harga) VALUES(?,?)",
-        p
-        )
+    Kami menyediakan perjalanan:
+    - Pendakian gunung
+    - Wisata curug
+    - Trip bersama komunitas
+    """)
 
-conn.commit()
+# =====================
+# MENU TRIP
+# =====================
+elif menu=="Trip":
 
+    st.title("Daftar Trip")
 
-# ================= SESSION =================
+    df = pd.read_sql("SELECT * FROM trip", conn)
 
-if "login" not in st.session_state:
-    st.session_state.login=False
-
-if "user" not in st.session_state:
-    st.session_state.user=""
-
-
-
-def hash_password(p):
-
-    return hashlib.sha256(
-        p.encode()
-    ).hexdigest()
-
-
-
-# ================= LOGIN =================
-
-def login_page():
-
-    st.title("👕 TILAS BUT RAOS")
-
-    menu=st.selectbox(
-        "Menu",
-        ["Login","Register"]
-    )
-
-    if menu=="Register":
-
-        user=st.text_input("Username")
-        pw=st.text_input(
-            "Password",
-            type="password"
-        )
-
-        if st.button("Daftar"):
-
-            c.execute(
-            "INSERT INTO users(username,password) VALUES(?,?)",
-            (
-            user,
-            hash_password(pw)
-            )
-            )
-
-            conn.commit()
-
-            st.success("Akun berhasil dibuat")
-
+    if len(df)==0:
+        st.warning("Belum ada trip.")
     else:
 
-        user=st.text_input("Username")
-        pw=st.text_input(
-            "Password",
-            type="password"
-        )
+        for i,row in df.iterrows():
 
-        if st.button("Login"):
+            with st.container():
 
-            c.execute(
-            "SELECT * FROM users WHERE username=? AND password=?",
-            (
-            user,
-            hash_password(pw)
+                st.subheader(row["nama"])
+                st.write("Kategori :",row["kategori"])
+                st.write("Tanggal :",row["tanggal"])
+                st.write("Harga : Rp{:,.0f}".format(row["harga"]))
+
+                with st.expander("Daftar Sekarang"):
+
+                    nama = st.text_input(
+                        "Nama",
+                        key=f"nama{i}"
+                    )
+
+                    usia = st.number_input(
+                        "Usia",
+                        10,
+                        80,
+                        key=f"usia{i}"
+                    )
+
+                    hp = st.text_input(
+                        "No Handphone",
+                        key=f"hp{i}"
+                    )
+
+                    if st.button(
+                        "Daftar",
+                        key=f"daftar{i}"
+                    ):
+
+                        c.execute(
+                        """
+                        INSERT INTO peserta
+                        (nama,usia,hp,trip)
+                        VALUES(?,?,?,?)
+                        """,
+                        (nama,usia,hp,row["nama"])
+                        )
+
+                        conn.commit()
+
+                        st.success("Pendaftaran berhasil")
+
+# =====================
+# ADMIN
+# =====================
+elif menu=="Admin":
+
+    st.title("Admin Panel")
+
+    user = st.text_input("Username")
+    pw = st.text_input("Password",type="password")
+
+    if user=="admin" and pw=="admin123":
+
+        st.success("Login berhasil")
+
+        tab1,tab2,tab3 = st.tabs([
+            "Tambah Trip",
+            "Data Trip",
+            "Peserta"
+        ])
+
+        # tambah trip
+        with tab1:
+
+            nama = st.text_input("Nama Trip")
+
+            kategori = st.selectbox(
+                "Kategori",
+                ["Gunung","Curug"]
             )
+
+            tanggal = st.date_input(
+                "Tanggal Berangkat"
             )
 
-            data=c.fetchone()
-
-            if data:
-
-                st.session_state.login=True
-                st.session_state.user=user
-
-                st.success("Login berhasil")
-
-                st.rerun()
-
-            else:
-
-                st.error("Login gagal")
-
-
-
-
-# ================= BERANDA =================
-
-def home():
-
-    st.title("🏠 Beranda TILAS BUT RAOS")
-
-    data=c.execute(
-    "SELECT * FROM produk"
-    ).fetchall()
-
-    for p in data:
-
-        st.subheader(p[1])
-
-        st.write(
-        "Harga : Rp",
-        p[2]
-        )
-
-        if st.button(
-            "Tambah Keranjang",
-            key=p[0]
-        ):
-
-            c.execute(
-            """
-            INSERT INTO keranjang
-            (user,produk,harga)
-            VALUES(?,?,?)
-            """,
-            (
-            st.session_state.user,
-            p[1],
-            p[2]
-            )
+            harga = st.number_input(
+                "Harga"
             )
 
-            conn.commit()
+            if st.button("Tambah Trip"):
 
-            st.success(
-            "Masuk keranjang"
+                c.execute(
+                """
+                INSERT INTO trip
+                (nama,kategori,tanggal,harga)
+                VALUES(?,?,?,?)
+                """,
+                (
+                nama,
+                kategori,
+                str(tanggal),
+                harga
+                )
+                )
+
+                conn.commit()
+
+                st.success("Trip berhasil ditambahkan")
+
+        # data trip
+        with tab2:
+
+            df = pd.read_sql(
+                "SELECT * FROM trip",
+                conn
             )
 
+            st.dataframe(df)
 
+        # peserta
+        with tab3:
 
-# ================= CART =================
+            peserta = pd.read_sql(
+                "SELECT * FROM peserta",
+                conn
+            )
 
-def cart():
-
-    st.title("🛒 Keranjang")
-
-    data=c.execute(
-    """
-    SELECT produk,harga 
-    FROM keranjang
-    WHERE user=?
-    """,
-    (st.session_state.user,)
-    ).fetchall()
-
-    total=0
-
-    for x in data:
-
-        st.write(
-        x[0],
-        "- Rp",
-        x[1]
-        )
-
-        total+=x[1]
-
-    st.write(
-    "Total : Rp",
-    total
-    )
-
-    if st.button("Checkout"):
-
-        st.session_state.checkout=True
-
-
-
-
-# ================= CHECKOUT =================
-
-def checkout():
-
-    st.title("📦 Checkout")
-
-    alamat=st.text_area(
-        "Alamat Pembeli"
-    )
-
-    bayar=st.selectbox(
-        "Pembayaran",
-        [
-        "Transfer Bank",
-        "Dana",
-        "OVO"
-        ]
-    )
-
-    if st.button("Bayar"):
-
-        c.execute(
-        """
-        INSERT INTO pesanan
-        (user,alamat,pembayaran)
-        VALUES(?,?,?)
-        """,
-        (
-        st.session_state.user,
-        alamat,
-        bayar
-        )
-        )
-
-        conn.commit()
-
-        st.success(
-        "Pembayaran berhasil"
-        )
-
-
-
-
-# ================= MAIN =================
-
-if not st.session_state.login:
-
-    login_page()
-
-else:
-
-    menu=st.sidebar.selectbox(
-        "Menu",
-        [
-        "Beranda",
-        "Keranjang",
-        "Checkout",
-        "Logout"
-        ]
-    )
-
-    if menu=="Beranda":
-        home()
-
-    elif menu=="Keranjang":
-        cart()
-
-    elif menu=="Checkout":
-        checkout()
+            st.dataframe(peserta)
 
     else:
-
-        st.session_state.login=False
-        st.rerun()
-
+        st.info("Silakan login admin")
