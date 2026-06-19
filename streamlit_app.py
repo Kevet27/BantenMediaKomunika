@@ -666,48 +666,54 @@ if not st.session_state.login:
 
 else:
 
-    menu = [
-        "Beranda",
-        "Keranjang",
-        "Checkout",
-        "Riwayat Pesanan",
-        "Logout"
-    ]
-
-    # ADMIN
-    if st.session_state.user == "admin":
-
-        menu.insert(
-            4,
-            "Admin Produk"
-        )
-
-    pilihan = st.sidebar.selectbox(
+    menu = st.sidebar.selectbox(
         "Menu",
-        menu
+        [
+            "Beranda",
+            "Keranjang",
+            "Checkout",
+            "Riwayat Pesanan",
+            "Admin",
+            "Logout"
+        ]
     )
 
-    if pilihan == "Beranda":
+    if menu == "Beranda":
 
         home()
 
-    elif pilihan == "Keranjang":
+    elif menu == "Keranjang":
 
         cart()
 
-    elif pilihan == "Checkout":
+    elif menu == "Checkout":
 
         checkout()
 
-    elif pilihan == "Riwayat Pesanan":
+    elif menu == "Riwayat Pesanan":
 
         riwayat()
 
-    elif pilihan == "Admin Produk":
+    elif menu == "Admin":
 
-        admin_produk()
+        st.title("⚙️ Admin")
 
-    elif pilihan == "Logout":
+        password_admin = st.text_input(
+            "Masukkan Password Admin",
+            type="password"
+        )
+
+        if password_admin == "admin123":
+
+            admin_produk()
+
+        elif password_admin != "":
+
+            st.error(
+                "Password admin salah"
+            )
+
+    elif menu == "Logout":
 
         st.session_state.login = False
         st.session_state.user = ""
