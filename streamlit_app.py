@@ -454,3 +454,262 @@ def riwayat():
             )
 
             st.divider()
+# ================= ADMIN PRODUK =================
+
+def admin_produk():
+
+    st.title("⚙️ Admin Produk")
+
+    tab1, tab2 = st.tabs(
+        ["Tambah Produk", "Kelola Produk"]
+    )
+
+    # ================= TAMBAH PRODUK =================
+
+    with tab1:
+
+        nama = st.text_input(
+            "Nama Produk"
+        )
+
+        harga = st.number_input(
+            "Harga",
+            min_value=1000,
+            step=1000
+        )
+
+        gambar = st.file_uploader(
+            "Upload Foto Produk",
+            type=["jpg","jpeg","png"]
+        )
+
+        if st.button(
+            "Tambah Produk"
+        ):
+
+            nama_file = ""
+
+            if gambar is not None:
+
+                nama_file = gambar.name
+
+                with open(
+                    os.path.join(
+                        "gambar_produk",
+                        nama_file
+                    ),
+                    "wb"
+                ) as f:
+
+                    f.write(
+                        gambar.getbuffer()
+                    )
+
+            c.execute(
+            """
+            INSERT INTO produk
+            (nama,harga,gambar)
+            VALUES(?,?,?)
+            """,
+            (
+                nama,
+                int(harga),
+                nama_file
+            )
+            )
+
+            conn.commit()
+
+            st.success(
+                "Produk berhasil ditambahkan"
+            )
+
+            st.rerun()
+
+    # ================= KELOLA PRODUK =================
+
+    with tab2:
+
+        data = c.execute(
+        """
+        SELECT *
+        FROM produk
+        """
+        ).fetchall()
+
+        if len(data) == 0:
+
+            st.info(
+                "Belum ada produk"
+            )
+
+        else:
+
+            for p in data:
+
+                st.divider()
+
+                col1, col2 = st.columns([1,2])
+
+                with col1:
+
+                    if p[3] != "":
+
+                        try:
+
+                            st.image(
+                                "gambar_produk/" + p[3],
+                                width=150
+                            )
+
+                        except:
+                            pass
+
+                with col2:
+
+                    nama_baru = st.text_input(
+                        "Nama Produk",
+                        value=p[1],
+                        key="nama"+str(p[0])
+                    )
+
+                    harga_baru = st.number_input(
+                        "Harga",
+                        value=int(p[2]),
+                        key="harga"+str(p[0])
+                    )
+
+                    gambar_baru = st.file_uploader(
+                        "Ganti Foto",
+                        type=["jpg","jpeg","png"],
+                        key="gambar"+str(p[0])
+                    )
+
+                    col_update, col_hapus = st.columns(2)
+
+                    with col_update:
+
+                        if st.button(
+                            "Update",
+                            key="update"+str(p[0])
+                        ):
+
+                            nama_file = p[3]
+
+                            if gambar_baru is not None:
+
+                                nama_file = gambar_baru.name
+
+                                with open(
+                                    os.path.join(
+                                        "gambar_produk",
+                                        nama_file
+                                    ),
+                                    "wb"
+                                ) as f:
+
+                                    f.write(
+                                        gambar_baru.getbuffer()
+                                    )
+
+                            c.execute(
+                            """
+                            UPDATE produk
+                            SET nama=?,
+                            harga=?,
+                            gambar=?
+                            WHERE id=?
+                            """,
+                            (
+                                nama_baru,
+                                int(harga_baru),
+                                nama_file,
+                                p[0]
+                            )
+                            )
+
+                            conn.commit()
+
+                            st.success(
+                                "Produk berhasil diperbarui"
+                            )
+
+                            st.rerun()
+
+                    with col_hapus:
+
+                        if st.button(
+                            "Hapus",
+                            key="hapus"+str(p[0])
+                        ):
+
+                            c.execute(
+                            """
+                            DELETE FROM produk
+                            WHERE id=?
+                            """,
+                            (
+                                p[0],
+                            )
+                            )
+
+                            conn.commit()
+
+                            st.rerun()
+
+
+# ================= MENU UTAMA =================
+
+if not st.session_state.login:
+
+    login_page()
+
+else:
+
+    menu = [
+        "Beranda",
+        "Keranjang",
+        "Checkout",
+        "Riwayat Pesanan",
+        "Logout"
+    ]
+
+    # ADMIN
+    if st.session_state.user == "admin":
+
+        menu.insert(
+            4,
+            "Admin Produk"
+        )
+
+    pilihan = st.sidebar.selectbox(
+        "Menu",
+        menu
+    )
+
+    if pilihan == "Beranda":
+
+        home()
+
+    elif pilihan == "Keranjang":
+
+        cart()
+
+    elif pilihan == "Checkout":
+
+        checkout()
+
+    elif pilihan == "Riwayat Pesanan":
+
+        riwayat()
+
+    elif pilihan == "Admin Produk":
+
+        admin_produk()
+
+    elif pilihan == "Logout":
+
+        st.session_state.login = False
+        st.session_state.user = ""
+
+        st.rerun()
