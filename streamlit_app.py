@@ -191,3 +191,280 @@ def login_page():
                 st.error(
                     "Username atau password salah"
                 )
+# ================= BERANDA =================
+
+def home():
+
+    st.title("🏠 Beranda TILAS BUT RAOS")
+
+    data = c.execute(
+        "SELECT * FROM produk"
+    ).fetchall()
+
+    if len(data) == 0:
+
+        st.info(
+            "Belum ada produk"
+        )
+
+    else:
+
+        cols = st.columns(3)
+
+        nomor = 0
+
+        for p in data:
+
+            with cols[nomor % 3]:
+
+                if p[3] != "":
+                    try:
+                        st.image(
+                            "gambar_produk/" + p[3],
+                            use_container_width=True
+                        )
+                    except:
+                        pass
+
+                st.subheader(
+                    p[1]
+                )
+
+                st.write(
+                    "Rp",
+                    format(
+                        p[2],
+                        ","
+                    )
+                )
+
+                if st.button(
+                    "Tambah Keranjang",
+                    key="produk"+str(p[0])
+                ):
+
+                    c.execute(
+                        """
+                        INSERT INTO keranjang
+                        (user,produk,harga)
+                        VALUES(?,?,?)
+                        """,
+                        (
+                            st.session_state.user,
+                            p[1],
+                            p[2]
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.success(
+                        "Produk masuk keranjang"
+                    )
+
+            nomor += 1
+
+
+# ================= KERANJANG =================
+
+def cart():
+
+    st.title("🛒 Keranjang")
+
+    data = c.execute(
+        """
+        SELECT id,produk,harga
+        FROM keranjang
+        WHERE user=?
+        """,
+        (
+            st.session_state.user,
+        )
+    ).fetchall()
+
+    total = 0
+
+    if len(data) == 0:
+
+        st.info(
+            "Keranjang kosong"
+        )
+
+    else:
+
+        for x in data:
+
+            col1, col2 = st.columns([4,1])
+
+            with col1:
+
+                st.write(
+                    x[1],
+                    "- Rp",
+                    format(
+                        x[2],
+                        ","
+                    )
+                )
+
+            with col2:
+
+                if st.button(
+                    "Hapus",
+                    key="hapus"+str(x[0])
+                ):
+
+                    c.execute(
+                        """
+                        DELETE FROM keranjang
+                        WHERE id=?
+                        """,
+                        (
+                            x[0],
+                        )
+                    )
+
+                    conn.commit()
+
+                    st.rerun()
+
+            total += x[2]
+
+        st.subheader(
+            "Total : Rp " +
+            format(
+                total,
+                ","
+            )
+        )
+
+
+# ================= CHECKOUT =================
+
+def checkout():
+
+    st.title("📦 Checkout")
+
+    data = c.execute(
+        """
+        SELECT harga
+        FROM keranjang
+        WHERE user=?
+        """,
+        (
+            st.session_state.user,
+        )
+    ).fetchall()
+
+    total = 0
+
+    for x in data:
+
+        total += x[0]
+
+    st.write(
+        "Total Belanja : Rp",
+        format(
+            total,
+            ","
+        )
+    )
+
+    alamat = st.text_area(
+        "Alamat Lengkap"
+    )
+
+    pembayaran = st.selectbox(
+        "Metode Pembayaran",
+        [
+            "Transfer Bank",
+            "DANA",
+            "OVO"
+        ]
+    )
+
+    if st.button(
+        "Bayar"
+    ):
+
+        c.execute(
+            """
+            INSERT INTO pesanan
+            (user,alamat,pembayaran,total)
+            VALUES(?,?,?,?)
+            """,
+            (
+                st.session_state.user,
+                alamat,
+                pembayaran,
+                total
+            )
+        )
+
+        conn.commit()
+
+        c.execute(
+            """
+            DELETE FROM keranjang
+            WHERE user=?
+            """,
+            (
+                st.session_state.user,
+            )
+        )
+
+        conn.commit()
+
+        st.success(
+            "Pesanan berhasil dibuat"
+        )
+
+
+# ================= RIWAYAT =================
+
+def riwayat():
+
+    st.title(
+        "📋 Riwayat Pesanan"
+    )
+
+    data = c.execute(
+        """
+        SELECT alamat,pembayaran,total
+        FROM pesanan
+        WHERE user=?
+        """,
+        (
+            st.session_state.user,
+        )
+    ).fetchall()
+
+    if len(data) == 0:
+
+        st.info(
+            "Belum ada pesanan"
+        )
+
+    else:
+
+        for x in data:
+
+            st.write(
+                "Alamat :",
+                x[0]
+            )
+
+            st.write(
+                "Pembayaran :",
+                x[1]
+            )
+
+            st.write(
+                "Total : Rp",
+                format(
+                    x[2],
+                    ","
+                )
+            )
+
+            st.divider()
