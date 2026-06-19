@@ -482,4 +482,3 @@ else:
         st.session_state.user = ""
 
         st.rerun()
-```
