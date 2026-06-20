@@ -499,3 +499,200 @@ with col2:
         total_stok
     )
 
+import streamlit as st
+import pandas as pd
+from database import get_connection
+
+# ======================
+# CEK LOGIN
+# ======================
+if "login" not in st.session_state or st.session_state.login == False:
+    st.warning("Silakan login terlebih dahulu.")
+    st.stop()
+
+conn = get_connection()
+cur = conn.cursor()
+
+user_id = st.session_state.user_id
+
+st.title("🛒 Kasir")
+
+# ======================
+# SESSION KERANJANG
+# ======================
+if "keranjang" not in st.session_state:
+    st.session_state.keranjang = []
+
+# ======================
+# AMBIL DATA BARANG
+# ======================
+query = """
+SELECT *
+FROM products
+WHERE user_id=?
+AND stok > 0
+ORDER BY nama_barang
+"""
+
+df_barang = pd.read_sql_query(query, conn, params=(user_id,))
+
+if len(df_barang) == 0:
+    st.info("Belum ada barang tersedia.")
+    st.stop()
+
+# ======================
+# PILIH BARANG
+# ======================
+st.subheader("Tambah ke Keranjang")
+
+barang = st.selectbox(
+    "Pilih Barang",
+    df_barang["nama_barang"]
+)
+
+row = df_barang[df_barang["nama_barang"] == barang].iloc[0]
+
+st.write("Harga :", f"Rp {row['harga']:,.0f}")
+st.write("Stok :", row["stok"])
+
+qty = st.number_input(
+    "Jumlah",
+    min_value=1,
+    max_value=int(row["stok"]),
+    value=1
+)
+
+if st.button("➕ Tambah"):
+    subtotal = int(row["harga"]) * qty
+
+    st.session_state.keranjang.append({
+        "id_barang": row["id"],
+        "nama_barang": row["nama_barang"],
+        "harga": int(row["harga"]),
+        "qty": qty,
+        "subtotal": subtotal
+    })
+
+    st.success("Barang masuk ke keranjang")
+    st.rerun()
+
+# ======================
+# KERANJANG
+# ======================
+st.divider()
+st.subheader("Keranjang")
+
+if len(st.session_state.keranjang) == 0:
+    st.info("Keranjang masih kosong.")
+
+else:
+
+    df_keranjang = pd.DataFrame(
+        st.session_state.keranjang
+    )
+
+    st.dataframe(
+        df_keranjang,
+        use_container_width=True
+    )
+
+    total = df_keranjang["subtotal"].sum()
+
+    st.subheader(
+        f"Total : Rp {total:,.0f}"
+    )
+
+    col1, col2 = st.columns(2)
+
+    # ======================
+    # SIMPAN TRANSAKSI
+    # ======================
+    with col1:
+        if st.button("💾 Simpan Transaksi"):
+
+            cur.execute(
+                """
+                INSERT INTO transactions(user_id,total)
+                VALUES(?,?)
+                """,
+                (user_id, int(total))
+            )
+
+            conn.commit()
+
+            transaction_id = cur.lastrowid
+
+            # detail transaksi
+            for item in st.session_state.keranjang:
+
+                cur.execute(
+                    """
+                    INSERT INTO transaction_detail
+                    (transaction_id,product_id,qty,subtotal)
+                    VALUES(?,?,?,?)
+                    """,
+                    (
+                        transaction_id,
+                        item["id_barang"],
+                        item["qty"],
+                        item["subtotal"]
+                    )
+                )
+
+                # kurangi stok
+                cur.execute(
+                    """
+                    UPDATE products
+                    SET stok = stok - ?
+                    WHERE id=?
+                    """,
+                    (
+                        item["qty"],
+                        item["id_barang"]
+                    )
+                )
+
+            conn.commit()
+
+            st.session_state.keranjang = []
+
+            st.success("Transaksi berhasil disimpan")
+            st.rerun()
+
+    # ======================
+    # HAPUS KERANJANG
+    # ======================
+    with col2:
+        if st.button("🗑 Kosongkan Keranjang"):
+            st.session_state.keranjang = []
+            st.rerun()
+
+# ======================
+# TRANSAKSI TERAKHIR
+# ======================
+st.divider()
+
+st.subheader("10 Transaksi Terakhir")
+
+query = """
+SELECT *
+FROM transactions
+WHERE user_id=?
+ORDER BY tanggal DESC
+LIMIT 10
+"""
+
+df_transaksi = pd.read_sql_query(
+    query,
+    conn,
+    params=(user_id,)
+)
+
+if len(df_transaksi) > 0:
+    df_transaksi.index = range(1, len(df_transaksi)+1)
+    st.dataframe(
+        df_transaksi,
+        use_container_width=True
+    )
+else:
+    st.info("Belum ada transaksi.")
