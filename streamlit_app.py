@@ -149,3 +149,144 @@ else:
         st.session_state.role = ""
         st.rerun()
 
+import streamlit as st
+import pandas as pd
+from database import get_connection
+
+# ==========================
+# CEK LOGIN
+# ==========================
+if "login" not in st.session_state or st.session_state.login == False:
+    st.warning("Silakan login terlebih dahulu.")
+    st.stop()
+
+conn = get_connection()
+cur = conn.cursor()
+
+user_id = st.session_state.user_id
+
+st.title("📊 Dashboard")
+
+# ==========================
+# TOTAL TRANSAKSI HARI INI
+# ==========================
+cur.execute("""
+SELECT COUNT(*) as jumlah
+FROM transactions
+WHERE user_id = ?
+AND DATE(tanggal)=DATE('now','localtime')
+""", (user_id,))
+
+jumlah_transaksi = cur.fetchone()["jumlah"]
+
+# ==========================
+# TOTAL OMZET HARI INI
+# ==========================
+cur.execute("""
+SELECT COALESCE(SUM(total),0) as omzet
+FROM transactions
+WHERE user_id = ?
+AND DATE(tanggal)=DATE('now','localtime')
+""", (user_id,))
+
+omzet_hari_ini = cur.fetchone()["omzet"]
+
+# ==========================
+# TOTAL SELURUH TRANSAKSI
+# ==========================
+cur.execute("""
+SELECT COUNT(*) as total
+FROM transactions
+WHERE user_id = ?
+""", (user_id,))
+
+total_transaksi = cur.fetchone()["total"]
+
+# ==========================
+# TOTAL SELURUH OMZET
+# ==========================
+cur.execute("""
+SELECT COALESCE(SUM(total),0) as total_omzet
+FROM transactions
+WHERE user_id = ?
+""", (user_id,))
+
+total_omzet = cur.fetchone()["total_omzet"]
+
+# ==========================
+# CARD
+# ==========================
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        "Jumlah Transaksi Hari Ini",
+        jumlah_transaksi
+    )
+
+    st.metric(
+        "Total Seluruh Transaksi",
+        total_transaksi
+    )
+
+with col2:
+    st.metric(
+        "Omzet Hari Ini",
+        f"Rp {omzet_hari_ini:,.0f}"
+    )
+
+    st.metric(
+        "Total Omzet",
+        f"Rp {total_omzet:,.0f}"
+    )
+
+st.divider()
+
+# ==========================
+# PENJUALAN 7 HARI TERAKHIR
+# ==========================
+st.subheader("Grafik Penjualan 7 Hari Terakhir")
+
+query = """
+SELECT
+DATE(tanggal) as tanggal,
+SUM(total) as omzet
+FROM transactions
+WHERE user_id=?
+AND DATE(tanggal)>=DATE('now','-6 day')
+GROUP BY DATE(tanggal)
+ORDER BY tanggal
+"""
+
+df = pd.read_sql_query(query, conn, params=(user_id,))
+
+if len(df) > 0:
+    st.line_chart(
+        df.set_index("tanggal")
+    )
+else:
+    st.info("Belum ada transaksi.")
+
+# ==========================
+# TRANSAKSI TERBARU
+# ==========================
+st.divider()
+
+st.subheader("Riwayat Transaksi Terbaru")
+
+query2 = """
+SELECT *
+FROM transactions
+WHERE user_id=?
+ORDER BY tanggal DESC
+LIMIT 10
+"""
+
+df2 = pd.read_sql_query(query2, conn, params=(user_id,))
+
+if len(df2) > 0:
+    df2.index = range(1, len(df2)+1)
+    st.dataframe(df2, use_container_width=True)
+else:
+    st.info("Belum ada transaksi.")
+
