@@ -290,3 +290,212 @@ if len(df2) > 0:
 else:
     st.info("Belum ada transaksi.")
 
+import streamlit as st
+import pandas as pd
+from database import get_connection
+
+# =====================
+# CEK LOGIN
+# =====================
+if "login" not in st.session_state or st.session_state.login == False:
+    st.warning("Silakan login terlebih dahulu.")
+    st.stop()
+
+conn = get_connection()
+cur = conn.cursor()
+
+user_id = st.session_state.user_id
+
+st.title("📦 Barang Jual")
+
+# =====================
+# TAMBAH BARANG
+# =====================
+with st.expander("➕ Tambah Barang", expanded=True):
+
+    nama_barang = st.text_input("Nama Barang")
+    harga = st.number_input(
+        "Harga",
+        min_value=0,
+        step=1000
+    )
+
+    stok = st.number_input(
+        "Stok",
+        min_value=0,
+        step=1
+    )
+
+    if st.button("Simpan Barang"):
+
+        if nama_barang == "":
+            st.error("Nama barang tidak boleh kosong")
+
+        else:
+            cur.execute(
+                """
+                INSERT INTO products
+                (user_id,nama_barang,harga,stok)
+                VALUES(?,?,?,?)
+                """,
+                (
+                    user_id,
+                    nama_barang,
+                    int(harga),
+                    int(stok)
+                )
+            )
+
+            conn.commit()
+            st.success("Barang berhasil ditambahkan")
+            st.rerun()
+
+st.divider()
+
+# =====================
+# PENCARIAN
+# =====================
+cari = st.text_input("🔍 Cari Barang")
+
+query = """
+SELECT *
+FROM products
+WHERE user_id=?
+AND nama_barang LIKE ?
+ORDER BY nama_barang
+"""
+
+df = pd.read_sql_query(
+    query,
+    conn,
+    params=(user_id, f"%{cari}%")
+)
+
+if len(df) == 0:
+    st.info("Belum ada barang.")
+    st.stop()
+
+# =====================
+# DAFTAR BARANG
+# =====================
+st.subheader("Daftar Barang")
+
+for index, row in df.iterrows():
+
+    with st.expander(
+        f"{row['nama_barang']} | Harga Rp {row['harga']:,.0f} | Stok {row['stok']}"
+    ):
+
+        nama_baru = st.text_input(
+            "Nama Barang",
+            value=row["nama_barang"],
+            key=f"nama{row['id']}"
+        )
+
+        harga_baru = st.number_input(
+            "Harga",
+            value=int(row["harga"]),
+            min_value=0,
+            key=f"harga{row['id']}"
+        )
+
+        stok_baru = st.number_input(
+            "Stok",
+            value=int(row["stok"]),
+            min_value=0,
+            key=f"stok{row['id']}"
+        )
+
+        col1, col2 = st.columns(2)
+
+        # =====================
+        # UPDATE
+        # =====================
+        with col1:
+            if st.button(
+                "💾 Update",
+                key=f"update{row['id']}"
+            ):
+
+                cur.execute(
+                    """
+                    UPDATE products
+                    SET nama_barang=?,
+                        harga=?,
+                        stok=?
+                    WHERE id=?
+                    """,
+                    (
+                        nama_baru,
+                        int(harga_baru),
+                        int(stok_baru),
+                        row["id"]
+                    )
+                )
+
+                conn.commit()
+                st.success("Barang berhasil diperbarui")
+                st.rerun()
+
+        # =====================
+        # HAPUS
+        # =====================
+        with col2:
+            if st.button(
+                "🗑 Hapus",
+                key=f"hapus{row['id']}"
+            ):
+
+                cur.execute(
+                    """
+                    DELETE FROM products
+                    WHERE id=?
+                    """,
+                    (row["id"],)
+                )
+
+                conn.commit()
+                st.success("Barang berhasil dihapus")
+                st.rerun()
+
+# =====================
+# RINGKASAN
+# =====================
+st.divider()
+
+cur.execute(
+    """
+    SELECT COUNT(*) jumlah_barang
+    FROM products
+    WHERE user_id=?
+    """,
+    (user_id,)
+)
+
+jumlah_barang = cur.fetchone()["jumlah_barang"]
+
+cur.execute(
+    """
+    SELECT COALESCE(SUM(stok),0) total_stok
+    FROM products
+    WHERE user_id=?
+    """,
+    (user_id,)
+)
+
+total_stok = cur.fetchone()["total_stok"]
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        "Jumlah Jenis Barang",
+        jumlah_barang
+    )
+
+with col2:
+    st.metric(
+        "Total Stok",
+        total_stok
+    )
+
